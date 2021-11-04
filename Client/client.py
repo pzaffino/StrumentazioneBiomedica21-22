@@ -9,9 +9,9 @@ import matplotlib.animation as animation
 # plot class
 class AnalogPlot:
   # constr
-  def __init__(self, strPort, maxLen):
+  def __init__(self, strPort, maxLen, baudRate):
       # open serial port
-      self.ser = serial.Serial(strPort, 9600)
+      self.ser = serial.Serial(strPort, baudRate)
 
       self.ax = deque([0.0]*maxLen)
       self.maxLen = maxLen
@@ -48,24 +48,30 @@ def main():
   # add expected arguments
   parser.add_argument('--port', dest='port', required=True)
   parser.add_argument('--maxLen', dest='maxLen', type=int, default=300)
+  parser.add_argument('--baudRate', dest='baudRate', type=int, default=9600)
+  parser.add_argument('--ymin', dest='ymin', type=int, default=650)
+  parser.add_argument('--ymax', dest='ymax', type=int, default=800)
 
   # parse args
   args = parser.parse_args()
 
   strPort = args.port
   maxLen = args.maxLen
+  baudRate = args.baudRate
+  ymin = args.ymin
+  ymax = args.ymax
   print(maxLen)
 
   print('reading from serial port %s...' % strPort)
 
   # plot parameters
-  analogPlot = AnalogPlot(strPort, maxLen)
+  analogPlot = AnalogPlot(strPort, maxLen, baudRate)
 
   print('plotting data...')
 
   # set up animation
   fig = plt.figure()
-  ax = plt.axes(xlim=(0, maxLen), ylim=(650, 800))
+  ax = plt.axes(xlim=(0, maxLen), ylim=(ymin, ymax))
   a0, = ax.plot([], [])
   anim = animation.FuncAnimation(fig, analogPlot.update,
                                  fargs=(a0,),
