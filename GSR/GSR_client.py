@@ -6,44 +6,34 @@ from collections import deque
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-import scipy.signal
-
 # plot class
 class AnalogPlot:
+  # constr
   def __init__(self, strPort, maxLen):
       # open serial port
       self.ser = serial.Serial(strPort, 9600)
 
-      self.batchSize = 10
+      self.ax = deque([0.0]*maxLen)
       self.maxLen = maxLen
 
-      self.ax = [0.0]*maxLen
-      self.internal_buffer = [0.0]*self.batchSize
-
-      self.counterValue = 0
-      self.counterOffset = 0
+  # add to buffer
+  def addToBuf(self, buf, val):
+      if len(buf) < self.maxLen:
+          buf.append(val)
+      else:
+          buf.pop()
+          buf.appendleft(val)
 
   # update plot
   def update(self, frameNum, a0):
-    if self.counterValue < self.batchSize:
       try:
-        data = float(self.ser.readline())
-        self.internal_buffer[self.counterValue]=data
-        self.counterValue += 1
+          data = float(self.ser.readline())
+          self.addToBuf(self.ax, data)
+          a0.set_data(range(self.maxLen), self.ax)
       except:
           pass
 
-    elif self.counterValue == self.batchSize:
-      self.ax[self.counterOffset:self.counterOffset+self.batchSize] = scipy.signal.savgol_filter(self.internal_buffer,7,3)
-      a0.set_data(range(self.maxLen), self.ax)
-      self.internal_buffer = [0.0]*self.batchSize
-      self.counterOffset += self.batchSize
-      self.counterValue = 0
-
-    if self.counterOffset + self.batchSize > self.maxLen:
-      self.counterOffset = 0
-
-    return a0,
+      return a0,
 
   # clean up
   def close(self):
@@ -74,7 +64,7 @@ def main():
 
   # set up animation
   fig = plt.figure()
-  ax = plt.axes(xlim=(0, maxLen), ylim=(200, 500))
+  ax = plt.axes(xlim=(0, maxLen), ylim=(0, 550))
   a0, = ax.plot([], [])
   anim = animation.FuncAnimation(fig, analogPlot.update,
                                  fargs=(a0,),
